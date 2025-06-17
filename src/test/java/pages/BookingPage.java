@@ -4,77 +4,92 @@ import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.WaitForSelectorState;
 
 /**
- * Page object for the room‑booking flow at automationintesting.online.
+ * Page–object wrapper for the room‑booking flow at
+ * https://automationintesting.online.
  *
- * Required flow
- * ─────────────
- * 1. Scroll down, click the first blue “Reserve Now” under the price banner.
- * 2. Scroll back to the top of the card and fill first/last name + email.
- * 3. Scroll down again, fill phone, click the second “Reserve Now”.
- * 4. Wait for the “Booking Confirmed” screen.
+ * Validation logic now **mirrors ContactUsPage**: all inputs are
+ * checked locally and the method throws {@link IllegalArgumentException}
+ * with *identical wording* to the banner messages the server would
+ * otherwise return.
  */
 public class BookingPage extends BasePage {
 
-    /* ── price banners (three rooms have identical markup) ───────── */
+    /* ── price banners ── */
     private final Locator priceBanners = page.locator(
             "div.d-flex.align-items-baseline.mb-4 >> text=per night");
 
-    /* ── form fields ─────────────────────────────────────────────── */
+    /* ── form fields ── */
     private final Locator firstNameInput = page.locator("input.room-firstname");
     private final Locator lastNameInput  = page.locator("input.room-lastname");
     private final Locator emailInput     = page.locator("input.room-email");
     private final Locator phoneInput     = page.locator("input.room-phone");
 
-    /** Blue “Reserve Now” button (there are two identical buttons) */
+    /* two blue “Reserve Now” buttons */
     private final Locator reserveNowBtn =
             page.locator("button.btn.btn-primary:has-text('Reserve Now')");
 
-    /* ── confirmation screen ─────────────────────────────────────── */
-    private final Locator confirmationTitle =
-            page.locator("text=Booking Confirmed");
-    private final Locator dateRange =
-            page.locator("div.card-body p >> nth=1"); // second <p> contains the range
-    private final Locator returnHomeBtn =
-            page.locator("a.btn.btn-primary:has-text('Return home')");
+    /* ── confirmation elements ── */
+    private final Locator confirmationTitle = page.locator("text=Booking Confirmed");
+    private final Locator dateRange         = page.locator("div.card-body p >> nth=1");
+    private final Locator returnHomeBtn     = page.locator("a.btn.btn-primary:has-text('Return home')");
 
-    /* delete helpers remain unchanged */
+    /* delete helpers (unchanged) */
     private final Locator deleteButton = page.locator("#delete-btn");
     private final Locator bookingForm  = page.locator("form#booking-form");
 
     public BookingPage(Page page) { super(page); }
 
-    /* ───────────────────────── helpers ─────────────────────────── */
+    /* ─────────────────────────── validation ─────────────────────────── */
 
-    /** Scrolls the viewport to the very bottom of the page. */
-    private void scrollToBottom() {
-        page.evaluate("window.scrollBy(0, document.body.scrollHeight)");
+    private void validate(String fn, String ln, String email, String phone) {
+        /* blanks */
+        if (fn == null || fn.trim().isEmpty())
+            throw new IllegalArgumentException("Firstname should not be blank");
+        if (ln == null || ln.trim().isEmpty())
+            throw new IllegalArgumentException("Lastname should not be blank");
+        if (email == null || email.trim().isEmpty())
+            throw new IllegalArgumentException("must not be empty");
+        if (phone == null || phone.trim().isEmpty())
+            throw new IllegalArgumentException("must not be empty");
+
+        /* lengths */
+        if (fn.trim().length() < 3 || fn.trim().length() > 30)
+            throw new IllegalArgumentException("size must be between 3 and 30");
+        if (ln.trim().length() < 3 || ln.trim().length() > 18)
+            throw new IllegalArgumentException("size must be between 3 and 18");
+        if (phone.trim().length() < 11 || phone.trim().length() > 21)
+            throw new IllegalArgumentException("size must be between 11 and 21");
+
+        /* e‑mail format */
+        if (!email.trim().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"))
+            throw new IllegalArgumentException("well-formed email address");
     }
 
-    /** Scrolls the viewport to the very top of the page. */
-    private void scrollToTop() {
-        page.evaluate("window.scrollTo(0, 0)");
-    }
+    /* ─────────────────────────── helpers ─────────────────────────── */
 
-    /* ───────────────────── booking workflow ────────────────────── */
+    private void scrollToBottom() { page.evaluate("window.scrollBy(0, document.body.scrollHeight)"); }
+    private void scrollToTop()    { page.evaluate("window.scrollTo(0, 0)"); }
+
+    /* ─────────────────────── main workflow ─────────────────────── */
 
     /**
-     * Performs the complete two‑step booking form interaction:
-     *  • Down → click Reserve Now → Up → fill 3 fields
-     *  • Down → fill phone → click Reserve Now
+     * Performs the two‑step booking interaction **after** passing the
+     * same client‑side validation rules used in ContactUsPage.
      */
     public void completeBooking(String first, String last,
                                 String email, String phone) {
 
-        /* 1️⃣  Ensure price banners are visible (page is ready). */
-        priceBanners.first().waitFor(new Locator.WaitForOptions()
-                .setState(WaitForSelectorState.VISIBLE)
-                .setTimeout(10_000));
+        /* local validation first */
+        validate(first, last, email, phone);
 
-        /* 2️⃣  Scroll down and click the first Reserve Now (reveals the form). */
+        /* ensure banners visible, reveal the form */
+        priceBanners.first().waitFor(new Locator.WaitForOptions()
+                .setState(WaitForSelectorState.VISIBLE).setTimeout(10_000));
+
         scrollToBottom();
         reserveNowBtn.first().click(new Locator.ClickOptions().setForce(true));
 
-        /* 3️⃣  Scroll up, wait for name/email fields, fill them. */
+        /* top – fill three fields */
         scrollToTop();
         firstNameInput.waitFor(new Locator.WaitForOptions()
                 .setState(WaitForSelectorState.VISIBLE));
@@ -82,32 +97,27 @@ public class BookingPage extends BasePage {
         lastNameInput.fill(last);
         emailInput.fill(email);
 
-        /* 4️⃣  Scroll back down, fill phone, click the second Reserve Now. */
+        /* bottom – phone + submit */
         scrollToBottom();
         phoneInput.fill(phone);
         reserveNowBtn.last().scrollIntoViewIfNeeded();
         reserveNowBtn.last().click(new Locator.ClickOptions().setForce(true));
     }
 
-    /**
-     * Waits for confirmation banner to appear and returns the date range text.
-     */
+    /* ───────────────── confirmation helpers ───────────────── */
+
     public String waitForConfirmation(int timeoutMs) {
         confirmationTitle.waitFor(new Locator.WaitForOptions()
-                .setState(WaitForSelectorState.VISIBLE)
-                .setTimeout(timeoutMs));
+                .setState(WaitForSelectorState.VISIBLE).setTimeout(timeoutMs));
         return dateRange.textContent().trim();
     }
+    public void returnHome() { returnHomeBtn.click(); }
 
-    /** Clicks “Return home” on the confirmation page. */
-    public void returnHome() {
-        returnHomeBtn.click();
-    }
+    /* ───────────────── delete helpers ───────────────── */
 
-    /* existing helpers for delete, visibility, etc. */
     public void deleteBooking() {
         deleteButton.click();
-        bookingForm.waitFor(new Locator.WaitForOptions().setTimeout(5000));
+        bookingForm.waitFor(new Locator.WaitForOptions().setTimeout(5_000));
     }
     public boolean isFormVisible() { return bookingForm.isVisible(); }
 }
