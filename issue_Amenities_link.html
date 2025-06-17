@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Amenities link adds hashtag but does not navigate</title>
+</head>
+<body>
+<h2>Issue 2: Amenities link adds hashtag but does not navigate</h2>
+
+<p><strong>Summary:</strong><br>
+  Clicking the Amenities link appends a hashtag (<code>#amenities</code>) to the URL but does not scroll or navigate to the Amenities section.</p>
+
+<p><strong>Description:</strong><br>
+  On the homepage, clicking the Amenities link modifies the URL by adding <code>#amenities</code> as a fragment identifier (e.g., <code>https://automationintesting.online/#amenities</code>), but the page does not scroll or jump to the Amenities section as expected. This behavior causes confusion for users who expect to be navigated to that section.</p>
+
+<p><strong>Steps to Reproduce:</strong></p>
+<ol>
+  <li>Open <a href="https://automationintesting.online/">https://automationintesting.online/</a></li>
+  <li>Click on the "Amenities" link in the navigation or menu.</li>
+  <li>Observe that the URL changes to include <code>#amenities</code> but the page position does not change.</li>
+</ol>
+
+<p><strong>Actual Result:</strong><br>
+  URL updates with <code>#amenities</code> but the page remains at the top; no scrolling or navigation occurs.</p>
+
+<p><strong>Expected Result:</strong><br>
+  Clicking the Amenities link should smoothly scroll or jump the viewport to the Amenities section of the page.</p>
+
+<p><strong>Severity:</strong> Low</p>
+</body>
+</html>

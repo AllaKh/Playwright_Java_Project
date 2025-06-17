@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Phone field accepts letters instead of digits only</title>
+</head>
+<body>
+<h2>Issue 1: Phone field accepts letters instead of digits only</h2>
+
+<p><strong>Summary:</strong><br>
+  Phone input field allows letters and non-numeric characters, but should restrict input to digits only.</p>
+
+<p><strong>Description:</strong><br>
+  Currently, the phone number input field in the contact form accepts alphabetic characters and other non-numeric symbols. This leads to invalid phone numbers being submitted and may cause issues during data processing or backend validation. The field should strictly enforce numeric input only (digits 0-9).</p>
+
+<p><strong>Steps to Reproduce:</strong></p>
+<ol>
+  <li>Navigate to the contact form page.</li>
+  <li>Enter letters (e.g., <code>abcde</code>) or mixed characters (e.g., <code>123abc</code>) in the phone number field.</li>
+  <li>Submit the form.</li>
+</ol>
+
+<p><strong>Actual Result:</strong><br>
+  The form accepts phone numbers containing letters and does not display any validation error.</p>
+
+<p><strong>Expected Result:</strong><br>
+  The phone field should accept only digits. Attempting to enter letters or special characters should trigger a validation error message such as <em>"Phone must contain digits only"</em> and prevent form submission.</p>
+
+<p><strong>Severity:</strong> Medium</p>
+</body>
+</html>
