@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Booking fails with client‑side exception</title>
+</head>
+<body>
+<h2>Booking fails with client‑side exception when dates are unavailable</h2>
+
+<p><strong>Summary:</strong><br>
+  Attempting to access <code>/reservation/&lt;roomId&gt;</code> with a date range that is
+  unavailable causes the entire application to throw a client‑side exception and render
+  an error banner instead of a graceful “Room unavailable” message.</p>
+
+<p><strong>Description:</strong><br>
+  Instead of returning a user‑friendly notice, the SPA crashes and shows:<br>
+  <em>“Application error: a client-side exception has occurred while loading automationintesting.online (see the browser console for more information).”</em><br>
+  All page functionality is lost until the user manually navigates away.</p>
+
+<p><strong>Steps to Reproduce:</strong></p>
+<ol>
+  <li>Open<br>
+    <code>https://automationintesting.online/reservation/2?checkin=2020-01-01&amp;checkout=2020-01-02</code>
+    (any obviously unavailable range will work).</li>
+  <li>Observe the screen after the SPA finishes loading.</li>
+</ol>
+
+<p><strong>Actual Result:</strong><br>
+  A full‑screen error banner appears; DevTools console shows an uncaught JavaScript
+  exception. The booking UI does not load.</p>
+
+<p><strong>Expected Result:</strong><br>
+  User should receive a clear “No availability for selected dates” message and be able
+  to choose different dates without the application crashing.</p>
+
+<p><strong>Severity:</strong> <span style="color:red;font-weight:bold;">Critical</span><br>
+  The bug blocks the primary booking flow and crashes the entire front‑end.</p>
+</body>
+</html>

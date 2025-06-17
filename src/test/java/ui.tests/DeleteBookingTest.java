@@ -3,62 +3,65 @@ package ui.tests;
 import com.microsoft.playwright.*;
 import org.testng.Assert;
 import org.testng.annotations.*;
-
-import pages.HomePage;
 import pages.BookingPage;
+import pages.HomePage;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Deletes an existing booking and verifies that the booking form becomes visible again.
+ * Creates a booking, deletes it, and verifies that the form re‑appears.
  */
 public class DeleteBookingTest {
-    private Playwright playwright;
-    private Browser browser;
-    private Page page;
 
-    private HomePage home;
+    private Playwright playwright;
+    private Browser    browser;
+    private Page       page;
+
+    private HomePage   home;
     private BookingPage booking;
 
-    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter FMT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+    /* ── lifecycle ──────────────────────────────────────────────── */
     @BeforeMethod
-    public void setup() {
+    public void setUp() {
         playwright = Playwright.create();
-        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(false));
+        browser = playwright.chromium()
+                .launch(new BrowserType.LaunchOptions().setHeadless(false));
         page = browser.newPage();
 
-        home = new HomePage(page);
+        home    = new HomePage(page);
         booking = new BookingPage(page);
     }
 
-    @AfterMethod
-    public void teardown() {
+    @AfterMethod(alwaysRun = true)
+    public void tearDown() {
         browser.close();
         playwright.close();
     }
 
-    @Test(description = "Create and delete a booking; verify that form reappears")
+    /* ── test ───────────────────────────────────────────────────── */
+    @Test(description = "Create a booking, delete it, verify that the form becomes visible again")
     public void deleteBookingSuccessfully() {
+
+        /* Build date range */
         LocalDate today = LocalDate.now();
-        String checkIn = today.plusDays(1).format(formatter);
-        String checkOut = today.plusDays(4).format(formatter);
+        String checkIn  = today.plusDays(1).format(FMT);
+        String checkOut = today.plusDays(4).format(FMT);
 
-        // Go to the Suite room booking page
+        /* Create booking */
         home.goToRoom("suite", checkIn, checkOut);
+        booking.completeBooking(
+                "Jane", "Doe", "jane@example.com", "12345678901");
 
-        // Fill and submit the booking form
-        booking.fillBookingForm("Jane", "Doe", "jane@example.com", "123456789");
-        booking.submitBooking();
+        String range = booking.waitForConfirmation(15_000);
+        Assert.assertFalse(range.isEmpty(), "Booking confirmation not visible");
 
-        // Confirm that booking is successful
-        Assert.assertTrue(booking.isConfirmationVisible(), "Booking confirmation not visible");
-
-        // Click the Delete button
+        /* Delete and verify form returns */
         booking.deleteBooking();
-
-        // Verify that the booking form is visible again
-        Assert.assertTrue(booking.isFormVisible(), "Booking form should be visible after deletion");
+        Assert.assertTrue(booking.isFormVisible(),
+                "Booking form should be visible after deletion");
     }
 }

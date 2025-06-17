@@ -26,7 +26,7 @@ public class BookingConfirmationPage {
     }
 
     public String getBookingReference() {
-        // Предположим, номер брони внутри confirmationBanner в элементе с классом .ref
+        // Assume the booking reference number is inside the confirmationBanner element, within a child element that has the class .ref
         return confirmationBanner.locator(".ref").textContent();
     }
 }

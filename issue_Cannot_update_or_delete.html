@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cannot update or delete an existing booking</title>
+</head>
+<body>
+<h2>Cannot update or delete an existing booking – client‑side crash</h2>
+
+<p><strong>Summary:</strong><br>
+  When a user attempts either to <em>update</em> or <em>delete</em> a booking, the application
+  throws a client‑side exception and displays the generic error banner instead of
+  completing the requested action.</p>
+
+<p><strong>Description:</strong><br>
+  Both operations that should modify an existing reservation lead to a complete
+  front‑end failure.  The page shows the message:<br>
+  <em>“Application error: a client-side exception has occurred while loading automationintesting.online (see the browser console for more information).”</em><br>
+  The user cannot proceed further; a refresh only reloads the same error.</p>
+
+<p><strong>Steps to Reproduce (Update flow):</strong></p>
+<ol>
+  <li>Create a new booking (the flow works and returns a confirmation).</li>
+  <li>Click the pencil/edit icon (or “Update” button) next to the booking.</li>
+  <li>Try to change any field and press <strong>Reserve Now</strong>.</li>
+</ol>
+
+<p><strong>Steps to Reproduce (Delete flow):</strong></p>
+<ol>
+  <li>Create a new booking.</li>
+  <li>Press the red <strong>Delete</strong> (trash) button.</li>
+</ol>
+
+<p><strong>Actual Result (both flows):</strong><br>
+  The SPA crashes and renders the client‑side exception banner; DevTools console
+  shows an uncaught JavaScript error.</p>
+
+<p><strong>Expected Result:</strong><br>
+<ul>
+  <li><em>Update:</em> Booking details should be saved and a success banner shown.</li>
+  <li><em>Delete:</em> Booking should be removed and the empty booking form should
+    re‑appear without errors.</li>
+</ul></p>
+
+<p><strong>Severity:</strong> <span style="color:red;font-weight:bold;">Critical</span><br>
+  The defect breaks essential CRUD functionality—users cannot edit or cancel
+  their reservations, potentially causing over‑booking and support escalations.</p>
+</body>
+</html>

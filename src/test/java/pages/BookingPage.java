@@ -4,64 +4,107 @@ import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.WaitForSelectorState;
 
 /**
- * Page object for the booking page at automationintesting.online
+ * Page object for the room‑booking flow at automationintesting.online.
+ *
+ * Required flow
+ * ─────────────
+ * 1. Scroll down, click the first blue “Reserve Now” under the price banner.
+ * 2. Scroll back to the top of the card and fill first/last name + email.
+ * 3. Scroll down again, fill phone, click the second “Reserve Now”.
+ * 4. Wait for the “Booking Confirmed” screen.
  */
 public class BookingPage extends BasePage {
 
-    private final Locator firstNameInput  = page.locator("#firstname");
-    private final Locator lastNameInput   = page.locator("#lastname");
-    private final Locator emailInput      = page.locator("#email");
-    private final Locator phoneInput      = page.locator("#phone");
+    /* ── price banners (three rooms have identical markup) ───────── */
+    private final Locator priceBanners = page.locator(
+            "div.d-flex.align-items-baseline.mb-4 >> text=per night");
 
-    /** Blue “Reserve Now” button */
-    private final Locator submitButton    = page.locator("button:has-text('Reserve Now')");
+    /* ── form fields ─────────────────────────────────────────────── */
+    private final Locator firstNameInput = page.locator("input.room-firstname");
+    private final Locator lastNameInput  = page.locator("input.room-lastname");
+    private final Locator emailInput     = page.locator("input.room-email");
+    private final Locator phoneInput     = page.locator("input.room-phone");
 
-    private final Locator confirmationMsg = page.locator("text=Thank you for your booking");
-    private final Locator deleteButton    = page.locator("#delete-btn");
-    private final Locator bookingForm     = page.locator("form#booking-form");
+    /** Blue “Reserve Now” button (there are two identical buttons) */
+    private final Locator reserveNowBtn =
+            page.locator("button.btn.btn-primary:has-text('Reserve Now')");
+
+    /* ── confirmation screen ─────────────────────────────────────── */
+    private final Locator confirmationTitle =
+            page.locator("text=Booking Confirmed");
+    private final Locator dateRange =
+            page.locator("div.card-body p >> nth=1"); // second <p> contains the range
+    private final Locator returnHomeBtn =
+            page.locator("a.btn.btn-primary:has-text('Return home')");
+
+    /* delete helpers remain unchanged */
+    private final Locator deleteButton = page.locator("#delete-btn");
+    private final Locator bookingForm  = page.locator("form#booking-form");
 
     public BookingPage(Page page) { super(page); }
 
+    /* ───────────────────────── helpers ─────────────────────────── */
+
+    /** Scrolls the viewport to the very bottom of the page. */
+    private void scrollToBottom() {
+        page.evaluate("window.scrollBy(0, document.body.scrollHeight)");
+    }
+
+    /** Scrolls the viewport to the very top of the page. */
+    private void scrollToTop() {
+        page.evaluate("window.scrollTo(0, 0)");
+    }
+
+    /* ───────────────────── booking workflow ────────────────────── */
+
     /**
-     * If the form is still collapsed, scroll to the bottom and click
-     * “Reserve Now” once to reveal it, then fill the four inputs.
+     * Performs the complete two‑step booking form interaction:
+     *  • Down → click Reserve Now → Up → fill 3 fields
+     *  • Down → fill phone → click Reserve Now
      */
-    public void fillBookingForm(String first, String last,
+    public void completeBooking(String first, String last,
                                 String email, String phone) {
 
-        // Step 1 – make the form visible (only if hidden yet)
-        if (!firstNameInput.isVisible()) {
-            page.evaluate("window.scrollBy(0, document.body.scrollHeight)");
-            submitButton.waitFor(new Locator.WaitForOptions()
-                    .setState(WaitForSelectorState.VISIBLE));
-            submitButton.scrollIntoViewIfNeeded();
-            submitButton.click(new Locator.ClickOptions().setForce(true));
+        /* 1️⃣  Ensure price banners are visible (page is ready). */
+        priceBanners.first().waitFor(new Locator.WaitForOptions()
+                .setState(WaitForSelectorState.VISIBLE)
+                .setTimeout(10_000));
 
-            // wait until the first input really appears
-            firstNameInput.waitFor(new Locator.WaitForOptions()
-                    .setState(WaitForSelectorState.VISIBLE));
-        }
+        /* 2️⃣  Scroll down and click the first Reserve Now (reveals the form). */
+        scrollToBottom();
+        reserveNowBtn.first().click(new Locator.ClickOptions().setForce(true));
 
-        // Step 2 – fill all fields
+        /* 3️⃣  Scroll up, wait for name/email fields, fill them. */
+        scrollToTop();
+        firstNameInput.waitFor(new Locator.WaitForOptions()
+                .setState(WaitForSelectorState.VISIBLE));
         firstNameInput.fill(first);
         lastNameInput.fill(last);
         emailInput.fill(email);
+
+        /* 4️⃣  Scroll back down, fill phone, click the second Reserve Now. */
+        scrollToBottom();
         phoneInput.fill(phone);
+        reserveNowBtn.last().scrollIntoViewIfNeeded();
+        reserveNowBtn.last().click(new Locator.ClickOptions().setForce(true));
     }
 
-    /** Final scroll + click, then wait for confirmation */
-    public void submitBooking() {
-        page.evaluate("window.scrollBy(0, document.body.scrollHeight)");
-        submitButton.scrollIntoViewIfNeeded();
-        submitButton.click(new Locator.ClickOptions().setForce(true));
-        confirmationMsg.waitFor(
-                new Locator.WaitForOptions().setTimeout(8000)
-                        .setState(WaitForSelectorState.VISIBLE));
+    /**
+     * Waits for confirmation banner to appear and returns the date range text.
+     */
+    public String waitForConfirmation(int timeoutMs) {
+        confirmationTitle.waitFor(new Locator.WaitForOptions()
+                .setState(WaitForSelectorState.VISIBLE)
+                .setTimeout(timeoutMs));
+        return dateRange.textContent().trim();
     }
 
-    public boolean isConfirmationVisible() { return confirmationMsg.isVisible(); }
+    /** Clicks “Return home” on the confirmation page. */
+    public void returnHome() {
+        returnHomeBtn.click();
+    }
 
-    /* — delete helpers unchanged — */
+    /* existing helpers for delete, visibility, etc. */
     public void deleteBooking() {
         deleteButton.click();
         bookingForm.waitFor(new Locator.WaitForOptions().setTimeout(5000));
