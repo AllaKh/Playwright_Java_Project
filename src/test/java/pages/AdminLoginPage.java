@@ -4,7 +4,7 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 
 /**
- * Page object for Admin login page at /admin
+ * Page object model for the Admin Login page at /admin.
  */
 public class AdminLoginPage extends BasePage {
 
@@ -16,11 +16,11 @@ public class AdminLoginPage extends BasePage {
         super(page);
         usernameInput = page.locator("#username");
         passwordInput = page.locator("#password");
-        loginButton = page.locator("button[type='submit']");
+        loginButton   = page.locator("button[type='submit']");
     }
 
     public boolean isAt() {
-        // Проверка по URL и наличию поля username
+        // Verify we're on the /admin page and the login form is visible
         return page.url().contains("/admin") && usernameInput.isVisible();
     }
 

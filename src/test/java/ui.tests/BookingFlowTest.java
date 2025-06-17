@@ -7,13 +7,13 @@ import pages.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * End‑to‑end happy‑path booking flow:
- *  • Choose date range via direct URL
- *  • Run two‑step Reserve‑Now sequence
- *  • Verify confirmation banner and date range
- *  • Click “Return home” and check URL
+ * End-to-end booking flow tests:
+ *  • Booking on valid/invalid dates
+ *  • Booking form cancelation
+ *  • Confirmation and navigation checks
  */
 public class BookingFlowTest {
 
@@ -49,33 +49,36 @@ public class BookingFlowTest {
         playwright.close();
     }
 
-    @Test(description = "Full booking flow with confirmation and return home")
-    public void bookingFlow() {
-        /* Build check‑in/check‑out from tomorrow → +1 day */
+    /**
+     * Booking with a random valid future date and validating confirmation
+     */
+    @Test(description = "Booking flow on a random valid future date with confirmation validation")
+    public void bookingFlowRandomDate() {
         LocalDate today = LocalDate.now();
-        String checkIn  = today.plusDays(1).format(FMT);
-        String checkOut = today.plusDays(2).format(FMT);
+        int offset = ThreadLocalRandom.current().nextInt(2, 30);
+        String checkIn = today.plusDays(offset).format(FMT);
+        String checkOut = today.plusDays(offset + 1).format(FMT);
 
-        /* Direct navigation to Double Room (id=2) */
+        // Navigate directly to Double Room (id=2)
         page.navigate("https://automationintesting.online/reservation/2"
                 + "?checkin=" + checkIn + "&checkout=" + checkOut);
 
-        /* Complete the two‑step booking */
-        booking.completeBooking(
-                "John", "Doe", "john.doe@example.com", "12345678901");
+        // Fill out and submit the booking form
+        booking.completeBooking("John", "Doe", "john.doe@example.com", "12345678901");
 
-        /* Wait for confirmation and verify dates */
+        // Wait for confirmation message and validate the date range
         String range = booking.waitForConfirmation(15_000);
         String expectedRange = checkIn + " - " + checkOut;
         Assert.assertTrue(range.contains(expectedRange),
-                "Confirmation range should contain: " + expectedRange);
+                "Confirmation should contain the expected date range: " + expectedRange);
 
-        /* Return home and assert URL */
+        // Return to home and validate URL
         booking.returnHome();
         page.waitForURL("https://automationintesting.online/");
-        Assert.assertTrue(page.url().equals("https://automationintesting.online/"),
-                "Should be back on Home page");
+        Assert.assertEquals(page.url(), "https://automationintesting.online/",
+                "Should return to the home page after booking confirmation");
     }
+
     /**
      * Cancels the booking form after it is revealed and confirms that
      * the name input disappears (form collapses back).
@@ -87,41 +90,38 @@ public class BookingFlowTest {
         String checkIn   = today.plusDays(3).format(FMT);
         String checkOut  = today.plusDays(4).format(FMT);
 
-        // open reservation page
+        // Open reservation page
         page.navigate("https://automationintesting.online/reservation/2"
                 + "?checkin=" + checkIn + "&checkout=" + checkOut);
 
-        // reveal form (first Reserve Now)
+        // Reveal the form
         page.locator("button.btn.btn-primary:has-text('Reserve Now')").first().click();
 
-        // click Cancel (grey btn inside the form)
+        // Click Cancel inside the form
         page.locator("button.btn.btn-secondary:has-text('Cancel')").click();
 
-        // first‑name field should disappear => form collapsed
+        // Assert form is hidden
         boolean formCollapsed = page.locator("input.room-firstname").isHidden();
         Assert.assertTrue(formCollapsed, "Booking form should be hidden after Cancel");
     }
 
     /**
-     * Attempts to book on unavailable dates and expects a client‑side exception banner.
+     * Attempts to book on unavailable (past) dates and expects a client-side exception banner.
      */
-    @Test(description = "Full booking flow on invalid dates shows client‑side error banner")
+    @Test(description = "Booking flow on invalid (past) dates shows error banner")
     public void bookingFlowInvalidDates() {
+        LocalDate today = LocalDate.now();
+        String checkIn  = today.minusDays(10).format(FMT); // 10 days ago
+        String checkOut = today.minusDays(9).format(FMT);  // 9 days ago
 
-        /* Build an obviously unavailable (past) date range */
-        LocalDate today   = LocalDate.now();
-        String checkIn    = today.minusDays(10).format(FMT);   // 10 days ago
-        String checkOut   = today.minusDays(9).format(FMT);    // 9 days ago
-
-        /* Direct navigation to Double Room (id = 2) */
+        // Navigate to reservation page
         page.navigate("https://automationintesting.online/reservation/2"
                 + "?checkin=" + checkIn + "&checkout=" + checkOut);
 
-        /* Attempt the normal two‑step booking flow */
-        booking.completeBooking(
-                "Fail", "Case", "fail.case@example.com", "12345678901");
+        // Attempt booking with past dates
+        booking.completeBooking("Fail", "Case", "fail.case@example.com", "12345678901");
 
-        /* The SPA should crash ⇒ runtime‑error banner */
+        // Verify error banner is shown
         Locator errorBanner = page.locator(
                 "text=Application error: a client-side exception has occurred");
 
@@ -130,6 +130,6 @@ public class BookingFlowTest {
                 .setTimeout(15_000));
 
         Assert.assertTrue(errorBanner.isVisible(),
-                "Client‑side exception banner should be visible for invalid dates");
+                "Error banner should appear when booking with past dates");
     }
 }
