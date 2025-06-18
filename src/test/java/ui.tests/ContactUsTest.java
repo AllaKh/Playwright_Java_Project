@@ -1,43 +1,34 @@
 package ui.tests;
 
-import com.microsoft.playwright.*;
+import com.microsoft.playwright.Page;
 import org.testng.Assert;
-import org.testng.annotations.*;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 import pages.ContactUsPage;
+import ui.core.BasePlaywrightTest;
 
 /**
- * Contact Us form tests – 15 cases (1 positive + 14 validation).
+ * Contact‑Us form suite – 15 scenarios (1 happy path + 14 negative‑path validations).
  */
-public class ContactUsTest {
+public class ContactUsTest extends BasePlaywrightTest {
 
-    private Playwright    playwright;
-    private Browser       browser;
-    private Page          page;
     private ContactUsPage contact;
 
+    /** Open the Contact‑Us section before each test. */
     @BeforeMethod
-    public void setup() {
-        playwright = Playwright.create();
-        browser = playwright.chromium()
-                .launch(new BrowserType.LaunchOptions().setHeadless(false));
-        page = browser.newPage();
+    public void openContactForm() {
         page.navigate("https://automationintesting.online/#contact");
         contact = new ContactUsPage(page);
     }
 
-    @AfterMethod(alwaysRun = true)
-    public void teardown() {
-        browser.close();
-        playwright.close();
-    }
+    /* Small visual pause when running headed; noop in CI if headless. */
+    private void pause() { page.waitForTimeout(1_000); }
 
-    private void pause() {
-        page.waitForTimeout(1_000);
-    }
+    /* positive path */
 
-    @Test
+    @Test(description = "Submit a valid message and verify the success banner")
     public void positiveSubmission() {
-        String name = "John Doe";
+        String name    = "John Doe";
         String subject = "Room availability";
 
         contact.fillContactForm(
@@ -63,67 +54,144 @@ public class ContactUsTest {
                 "Banner should contain the subject in bold");
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Name may not be blank")
+
+    /* negative path (14 cases) */
+
+    /* Name */
+
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Name may not be blank",
+            description = "Blank name should throw"
+    )
     public void blankName() {
-        contact.fillContactForm(" ", "a@b.c", "12345678901", "Subject", "This message is long enough.");
+        contact.fillContactForm(" ", "a@b.c", "12345678901",
+                "Subject", "This message is long enough.");
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Email may not be blank")
+    /* Email */
+
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Email may not be blank",
+            description = "Blank e‑mail should throw"
+    )
     public void blankEmail() {
-        contact.fillContactForm("John", " ", "12345678901", "Subject", "This message is long enough.");
+        contact.fillContactForm("John", " ", "12345678901",
+                "Subject", "This message is long enough.");
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Phone may not be blank")
+    /* Phone */
+
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Phone may not be blank",
+            description = "Blank phone should throw"
+    )
     public void blankPhone() {
-        contact.fillContactForm("John", "a@b.c", " ", "Subject", "This message is long enough.");
+        contact.fillContactForm("John", "a@b.c", " ",
+                "Subject", "This message is long enough.");
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Subject may not be blank")
+    /* Subject */
+
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Subject may not be blank",
+            description = "Blank subject should throw"
+    )
     public void blankSubject() {
-        contact.fillContactForm("John", "a@b.c", "12345678901", " ", "This message is long enough.");
+        contact.fillContactForm("John", "a@b.c", "12345678901",
+                " ", "This message is long enough.");
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Message may not be blank")
+    /* Message */
+
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Message may not be blank",
+            description = "Blank message should throw"
+    )
     public void blankMessage() {
-        contact.fillContactForm("John", "a@b.c", "12345678901", "Subject", " ");
+        contact.fillContactForm("John", "a@b.c", "12345678901",
+                "Subject", " ");
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Subject must be between 5 and 100 characters")
+    /* Subject length */
+
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Subject must be between 5 and 100 characters",
+            description = "Subject too short"
+    )
     public void subjectTooShort() {
-        contact.fillContactForm("John", "a@b.c", "12345678901", "abc", "This message is long enough.");
+        contact.fillContactForm("John", "a@b.c", "12345678901",
+                "abc", "This message is long enough.");
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Subject must be between 5 and 100 characters")
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Subject must be between 5 and 100 characters",
+            description = "Subject too long"
+    )
     public void subjectTooLong() {
-        String longSubject = "S".repeat(101);
-        contact.fillContactForm("John", "a@b.c", "12345678901", longSubject, "This message is long enough.");
+        contact.fillContactForm("John", "a@b.c", "12345678901",
+                "S".repeat(101), "This message is long enough.");
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Phone must be between 11 and 21 characters")
+    /* Phone length */
+
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Phone must be between 11 and 21 characters",
+            description = "Phone too short"
+    )
     public void phoneTooShort() {
-        contact.fillContactForm("John", "a@b.c", "1234567", "Subject", "This message is long enough.");
+        contact.fillContactForm("John", "a@b.c", "1234567",
+                "Subject", "This message is long enough.");
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Phone must be between 11 and 21 characters")
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Phone must be between 11 and 21 characters",
+            description = "Phone too long"
+    )
     public void phoneTooLong() {
-        String longPhone = "1".repeat(22);
-        contact.fillContactForm("John", "a@b.c", longPhone, "Subject", "This message is long enough.");
+        contact.fillContactForm("John", "a@b.c", "1".repeat(22),
+                "Subject", "This message is long enough.");
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Message must be between 20 and 2000 characters")
+    /* Message length */
+
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Message must be between 20 and 2000 characters",
+            description = "Message too short"
+    )
     public void messageTooShort() {
-        contact.fillContactForm("John", "a@b.c", "12345678901", "Subject", "Too short");
+        contact.fillContactForm("John", "a@b.c", "12345678901",
+                "Subject", "Too short");
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Message must be between 20 and 2000 characters")
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Message must be between 20 and 2000 characters",
+            description = "Message too long"
+    )
     public void messageTooLong() {
-        String longMessage = "M".repeat(2001);
-        contact.fillContactForm("John", "a@b.c", "12345678901", "Subject", longMessage);
+        contact.fillContactForm("John", "a@b.c", "12345678901",
+                "Subject", "M".repeat(2001));
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Email must be a well-formed email address")
+    /* E‑mail format */
+
+    @Test(
+            expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = "Email must be a well-formed email address",
+            description = "Malformed e‑mail should throw"
+    )
     public void invalidEmail() {
-        contact.fillContactForm("John", "invalid-email@", "12345678901", "Subject", "This message is long enough.");
+        contact.fillContactForm("John", "invalid-email@", "12345678901",
+                "Subject", "This message is long enough.");
     }
-
 }

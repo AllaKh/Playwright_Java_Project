@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Suite-room code mismatch in Report (critical)</title>
+</head>
+<body>
+<h2>Suite‑room code mismatch between Booking flow and Admin → Report</h2>
+
+<p><strong>Summary:</strong><br>
+  When a guest books the Suite, the confirmation page shows room code
+  <em>104</em>, yet the same reservation appears under room code
+  <em>103</em> on the&nbsp;<code>Admin → Report</code> screen.  The
+  discrepancy leads to reporting errors and possible overbooking.</p>
+
+<p><strong>Steps&nbsp;to&nbsp;Reproduce:</strong></p>
+<ol>
+  <li>Navigate to <code>/reservation/3</code> (Suite) with any valid future
+    check‑in and check‑out dates.</li>
+  <li>Complete the two‑step booking form.<br>
+    &nbsp;&nbsp;↳ <strong>Observed:</strong> Confirmation banner states
+    “Room: <strong>104</strong>”.</li>
+  <li>Log in as admin (<em>admin&nbsp;/ password</em>) and open
+    <code>Admin → Report</code>.</li>
+</ol>
+
+<p><strong>Actual&nbsp;Result:</strong><br>
+  The new entry is listed as “Room: <strong>103</strong>”.</p>
+
+<p><strong>Expected&nbsp;Result:</strong><br>
+  The room code in the report must match the code shown to the guest
+  (104) and the physical allocation in the inventory system.</p>
+
+<p><strong>Impact / Severity:</strong> <span style="color:red;"><b>Critical</b></span><br>
+  Misreporting room numbers can cause double booking, housekeeping
+  confusion, and revenue‑management inaccuracies.  The mismatch must
+  be resolved before the Suite can be offered reliably.</p>
+</body>
+</html>

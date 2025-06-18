@@ -1,49 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Cannot update or delete an existing booking</title>
+  <meta charset="UTF-8">
+  <title>Update and Delete pages are missing</title>
 </head>
 <body>
-<h2>Cannot update or delete an existing booking – client‑side crash</h2>
+<h2>Update and Delete pages are missing – 404 Not Found</h2>
 
 <p><strong>Summary:</strong><br>
-  When a user attempts either to <em>update</em> or <em>delete</em> a booking, the application
-  throws a client‑side exception and displays the generic error banner instead of
-  completing the requested action.</p>
+  The application does not have pages for <em>updating</em> or <em>deleting</em> bookings.
+  Attempting to access these pages returns a 404 Not Found error.</p>
 
 <p><strong>Description:</strong><br>
-  Both operations that should modify an existing reservation lead to a complete
-  front‑end failure.  The page shows the message:<br>
-  <em>“Application error: a client-side exception has occurred while loading automationintesting.online (see the browser console for more information).”</em><br>
-  The user cannot proceed further; a refresh only reloads the same error.</p>
+  When a user tries to navigate to the update or delete booking pages, the server responds
+  with a 404 status code, indicating that these pages are not implemented or do not exist.
+  As a result, users cannot modify or cancel existing reservations through the UI.</p>
 
-<p><strong>Steps to Reproduce (Update flow):</strong></p>
+<p><strong>Steps to Reproduce (Update page):</strong></p>
 <ol>
-  <li>Create a new booking (the flow works and returns a confirmation).</li>
-  <li>Click the pencil/edit icon (or “Update” button) next to the booking.</li>
-  <li>Try to change any field and press <strong>Reserve Now</strong>.</li>
+  <li>Create a new booking (which works and returns a confirmation).</li>
+  <li>Attempt to access the update page (e.g., via URL or edit button).</li>
 </ol>
 
-<p><strong>Steps to Reproduce (Delete flow):</strong></p>
+<p><strong>Steps to Reproduce (Delete page):</strong></p>
 <ol>
-  <li>Create a new booking.</li>
-  <li>Press the red <strong>Delete</strong> (trash) button.</li>
+  <li>Create a new booking as admin.</li>
+  <li>Attempt to access the update or delete page (e.g., via URL or update/delete button).</li>
 </ol>
 
-<p><strong>Actual Result (both flows):</strong><br>
-  The SPA crashes and renders the client‑side exception banner; DevTools console
-  shows an uncaught JavaScript error.</p>
+<p><strong>Actual Result (both pages):</strong><br>
+  The server returns a 404 Not Found response, and the pages do not load.</p>
 
 <p><strong>Expected Result:</strong><br>
 <ul>
-  <li><em>Update:</em> Booking details should be saved and a success banner shown.</li>
-  <li><em>Delete:</em> Booking should be removed and the empty booking form should
-    re‑appear without errors.</li>
+  <li><em>Update:</em> Booking details should be editable and saved successfully.</li>
+  <li><em>Delete:</em> Bookings should be removable and the form reset without errors.</li>
 </ul></p>
 
-<p><strong>Severity:</strong> <span style="color:red;font-weight:bold;">Critical</span><br>
-  The defect breaks essential CRUD functionality—users cannot edit or cancel
-  their reservations, potentially causing over‑booking and support escalations.</p>
+<p><strong>Severity:</strong> Critical<br>
+  Without these pages, users cannot modify or cancel bookings, which can cause overbooking
+  and increase support issues.</p>
 </body>
 </html>

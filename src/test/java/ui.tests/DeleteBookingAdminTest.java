@@ -1,90 +1,76 @@
 package ui.tests;
 
-import com.microsoft.playwright.*;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Response;
 import com.microsoft.playwright.options.WaitUntilState;
 import org.testng.Assert;
-import org.testng.annotations.*;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 import pages.BookingPage;
 import pages.HomePage;
+import ui.core.BasePlaywrightTest;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Random;
 
 /**
- * Creates a booking on a random future date, then tries to delete it via admin page.
- * If admin page returns 404, closes the window and finishes test.
+ * Creates a booking on a random future date, then attempts to reach the
+ * non‑existent admin “update” endpoint for that booking.
+ * If the endpoint returns **HTTP 404** we simply close the tab; otherwise
+ * we try to hit a (likewise hypothetical) “delete” endpoint and assert
+ * that it responds with a success code.
  */
-public class DeleteBookingAdminTest {
+public class DeleteBookingAdminTest extends BasePlaywrightTest {
 
-    private Playwright playwright;
-    private Browser browser;
-    private Page page;
-
-    private HomePage home;
+    private HomePage    home;
     private BookingPage booking;
 
     private static final DateTimeFormatter FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     @BeforeMethod
-    public void setUp() {
-        playwright = Playwright.create();
-        browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
-                .setHeadless(false));
-        page = browser.newPage();
-        home = new HomePage(page);
+    public void initPageObjects() {
+        home    = new HomePage(page);
         booking = new BookingPage(page);
     }
 
-    @AfterMethod(alwaysRun = true)
-    public void tearDown() {
-        if (browser != null) browser.close();
-        if (playwright != null) playwright.close();
-    }
+    @Test(description = "Create booking → hit /admin/update → expect 404 or delete via /admin/delete")
+    public void shouldHandleAdminUpdateAndDeleteEndpoints() {
+        /*1. create a booking on a random (1‑10) future day */
+        LocalDate today      = LocalDate.now();
+        int offset           = random.nextInt(60) + 1;
+        String checkIn       = today.plusDays(offset).format(FMT);
+        String checkOut      = today.plusDays(offset + 2).format(FMT);
 
-    @Test(description = "Creates a booking, then tries to delete it via admin and closes window on 404")
-    public void shouldDeleteBookingViaAdmin() {
-        LocalDate today = LocalDate.now();
-        Random random = new Random();
-
-        int daysToAdd = random.nextInt(10) + 1;  // random day 1..10 days from now
-        String checkIn = today.plusDays(daysToAdd).format(FMT);
-        String checkOut = today.plusDays(daysToAdd + 2).format(FMT);
-
-        // Create booking
         home.goToRoom("suite", checkIn, checkOut);
         booking.completeBooking("Test", "User", "test@example.com", "12345678901");
 
-        String bookingReference = booking.waitForConfirmation(15_000);
-        Assert.assertFalse(bookingReference.isEmpty(), "Booking confirmation not visible");
+        String confirmation = booking.waitForConfirmation(15_000);
+        Assert.assertFalse(confirmation.isEmpty(), "Booking confirmation not visible");
 
-        // Open new admin page tab
-        Page adminPage = browser.newPage();
+        /* 2. open a new tab and hit /admin/update */
+        Page adminTab = context.newPage();
+        Response updateResp = adminTab.navigate(
+                "https://automationintesting.online/admin/update",
+                new Page.NavigateOptions().setWaitUntil(WaitUntilState.DOMCONTENTLOADED));
 
-        // Navigate to admin update page for this booking reference
-        Response response = adminPage.navigate(
-                "https://automationintesting.online/admin/update?reference=" + bookingReference,
-                new Page.NavigateOptions().setWaitUntil(WaitUntilState.DOMCONTENTLOADED)
-        );
+        int updateStatus = updateResp != null ? updateResp.status() : 0;
+        System.out.println("GET /admin/update returned HTTP " + updateStatus);
 
-        int status = response != null ? response.status() : 0;
-        System.out.println("Admin update page HTTP status: " + status);
-
-        // If 404, close and stop test
-        if (status == 404) {
-            adminPage.close();
+        /* 3. handle result */
+        if (updateStatus == 404) {
+            adminTab.close();   // endpoint missing – nothing more to do
             return;
         }
 
-        // Otherwise, proceed to delete booking via admin URL
-        Response deleteResponse = adminPage.navigate(
-                "https://automationintesting.online/admin/delete?reference=" + bookingReference
-        );
+        // Otherwise try a (hypothetical) delete endpoint
+        Response deleteResp = adminTab.navigate(
+                "https://automationintesting.online/admin/delete");
 
-        Assert.assertNotNull(deleteResponse, "Delete response should not be null");
-        Assert.assertTrue(deleteResponse.ok(), "Failed to delete booking via admin");
+        Assert.assertNotNull(deleteResp, "Delete response should not be null");
+        Assert.assertTrue(deleteResp.ok(),
+                "Expected successful deletion, got HTTP " + deleteResp.status());
 
-        adminPage.close();
+        adminTab.close();
     }
 }

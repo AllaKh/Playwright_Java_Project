@@ -4,7 +4,7 @@ package api.tests;
 import api.core.BaseApiTest;
 import org.testng.TestListenerAdapter;
 import org.testng.TestNG;
-import ui.tests.BookingFlowTest;
+import ui.tests.*;
 
 /**
  * TestRunner runs API tests by invoking their run() method,
@@ -25,8 +25,13 @@ public class TestRunner {
 
     private static final Class<?>[] UI_TESTS = {
             BookingFlowTest.class,
-            DeleteBookingTest.class,
-            UpdateBookingTest.class
+            AdminLoginTest.class,
+            AdminBookingReportTest.class,
+            BookingValidationTest.class,
+            ContactUsTest.class,
+            DeleteBookingAdminTest.class,
+            NavigationLinksTest.class,
+            UpdateBookingAdminTest.class
     };
 
     public static void main(String[] args) {

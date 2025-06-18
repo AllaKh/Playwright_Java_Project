@@ -1,52 +1,27 @@
 package ui.tests;
 
-import com.microsoft.playwright.*;
-import org.testng.annotations.*;
+import com.microsoft.playwright.Page;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 import pages.BookingPage;
+import ui.core.BasePlaywrightTest;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 /**
  * Negative‑path validation suite for the room‑booking flow.
- *
- * Each test feeds **one** invalid value while the other three inputs
- * remain valid.  The {@link pages.BookingPage#completeBooking(String,
- * String, String, String)} method now performs the same client‑side
- * checks as the Contact Us page and immediately throws an
- * {@link IllegalArgumentException} whose message mirrors the red
- * validation banner on the site.  All tests therefore just assert that
- * the correct exception is raised.
  */
-public class BookingValidationTest {
+public class BookingValidationTest extends BasePlaywrightTest {
 
     private static final DateTimeFormatter FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    /* Playwright plumbing */
-    private Playwright playwright;
-    private Browser    browser;
-    private Page       page;
     private BookingPage booking;
 
-    /* ─────────── fixtures ─────────── */
-
-    @BeforeClass
-    public void launchBrowser() {
-        playwright = Playwright.create();
-        browser = playwright.chromium()
-                .launch(new BrowserType.LaunchOptions().setHeadless(false));
-    }
-
-    @AfterClass(alwaysRun = true)
-    public void closeBrowser() {
-        browser.close();
-        playwright.close();
-    }
-
+    /** Opens the reservation page for tomorrow → tomorrow + 1 day before each test. */
     @BeforeMethod
     public void openReservation() {
-        page = browser.newPage();
         booking = new BookingPage(page);
 
         LocalDate tomorrow = LocalDate.now().plusDays(1);
@@ -57,12 +32,9 @@ public class BookingValidationTest {
                 + "?checkin=" + in + "&checkout=" + out);
     }
 
-    @AfterMethod(alwaysRun = true)
-    public void closePage() { page.close(); }
+    /* validation cases */
 
-    /* ─────────── validation cases ─────────── */
-
-    /* First‑name -------------------------------------------------- */
+    /* First‑name */
 
     @Test(
             description = "Firstname blank → 'Firstname should not be blank'",
@@ -91,7 +63,7 @@ public class BookingValidationTest {
         booking.completeBooking("J".repeat(31), "Doe", "john@ex.com", "12345678901");
     }
 
-    /* Last‑name --------------------------------------------------- */
+    /* Last‑name */
 
     @Test(
             description = "Lastname blank → 'Lastname should not be blank'",
@@ -120,7 +92,7 @@ public class BookingValidationTest {
         booking.completeBooking("John", "D".repeat(19), "john@ex.com", "12345678901");
     }
 
-    /* E‑mail ------------------------------------------------------ */
+    /* E‑mail */
 
     @Test(
             description = "E‑mail blank → 'must not be empty'",
@@ -140,7 +112,7 @@ public class BookingValidationTest {
         booking.completeBooking("John", "Doe", "bad@", "12345678901");
     }
 
-    /* Phone ------------------------------------------------------- */
+    /* Phone */
 
     @Test(
             description = "Phone blank → 'must not be empty'",

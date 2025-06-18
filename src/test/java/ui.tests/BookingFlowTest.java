@@ -1,127 +1,92 @@
 package ui.tests;
 
-import com.microsoft.playwright.*;
+import com.microsoft.playwright.Locator;
 import org.testng.Assert;
 import org.testng.annotations.*;
-import pages.*;
+import pages.BookingPage;
+import ui.core.BasePlaywrightTest;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * End-to-end booking flow tests:
- *  • Booking on valid/invalid dates
- *  • Booking form cancelation
- *  • Confirmation and navigation checks
+ * End‑to‑end booking‑flow tests:
+ *   • Happy path on a random (future) date
+ *   • Cancel‑form flow
+ *   • Negative flow on past dates
  */
-public class BookingFlowTest {
-
-    private Playwright playwright;
-    private Browser    browser;
-    private Page       page;
+public class BookingFlowTest extends BasePlaywrightTest {
 
     private BookingPage booking;
-
-    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
-    @BeforeClass
-    public void setupClass() {
-        playwright = Playwright.create();
-        browser = playwright.chromium()
-                .launch(new BrowserType.LaunchOptions().setHeadless(false));
-    }
+    private static final DateTimeFormatter FMT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     @BeforeMethod
-    public void setup() {
-        page = browser.newPage();
+    public void setUpBookingPage() {
         booking = new BookingPage(page);
     }
 
-    @AfterMethod(alwaysRun = true)
-    public void teardown() {
-        page.close();
-    }
-
-    @AfterClass(alwaysRun = true)
-    public void tearDownClass() {
-        browser.close();
-        playwright.close();
-    }
-
-    /**
-     * Booking with a random valid future date and validating confirmation
-     */
+    /** Happy‑path booking with randomly chosen future dates */
     @Test(description = "Booking flow on a random valid future date with confirmation validation")
     public void bookingFlowRandomDate() {
         LocalDate today = LocalDate.now();
-        int offset = ThreadLocalRandom.current().nextInt(2, 30);
-        String checkIn = today.plusDays(offset).format(FMT);
+
+        // 2 – 59 days ahead  ⇒ random.nextInt(bound) is exclusive, so (58) + 2 reproduces [2, 60)
+        int offset = random.nextInt(60) + 2;
+        String checkIn  = today.plusDays(offset).format(FMT);
         String checkOut = today.plusDays(offset + 1).format(FMT);
 
         // Navigate directly to Double Room (id=2)
         page.navigate("https://automationintesting.online/reservation/2"
                 + "?checkin=" + checkIn + "&checkout=" + checkOut);
 
-        // Fill out and submit the booking form
+        // Complete booking
         booking.completeBooking("John", "Doe", "john.doe@example.com", "12345678901");
 
-        // Wait for confirmation message and validate the date range
-        String range = booking.waitForConfirmation(15_000);
+        // Confirm dates
+        String range         = booking.waitForConfirmation(15_000);
         String expectedRange = checkIn + " - " + checkOut;
         Assert.assertTrue(range.contains(expectedRange),
                 "Confirmation should contain the expected date range: " + expectedRange);
 
-        // Return to home and validate URL
+        // Back to home
         booking.returnHome();
         page.waitForURL("https://automationintesting.online/");
         Assert.assertEquals(page.url(), "https://automationintesting.online/",
                 "Should return to the home page after booking confirmation");
     }
 
-    /**
-     * Cancels the booking form after it is revealed and confirms that
-     * the name input disappears (form collapses back).
-     */
+    /** Cancelling the booking‑form collapses it again */
     @Test(description = "User opens the booking form and presses Cancel")
     public void cancelBookingForm() {
-
         LocalDate today  = LocalDate.now();
         String checkIn   = today.plusDays(3).format(FMT);
         String checkOut  = today.plusDays(4).format(FMT);
 
-        // Open reservation page
         page.navigate("https://automationintesting.online/reservation/2"
                 + "?checkin=" + checkIn + "&checkout=" + checkOut);
 
-        // Reveal the form
+        // Reveal and then cancel
         page.locator("button.btn.btn-primary:has-text('Reserve Now')").first().click();
-
-        // Click Cancel inside the form
         page.locator("button.btn.btn-secondary:has-text('Cancel')").click();
 
-        // Assert form is hidden
-        boolean formCollapsed = page.locator("input.room-firstname").isHidden();
-        Assert.assertTrue(formCollapsed, "Booking form should be hidden after Cancel");
+        // Form should collapse (firstname field hidden)
+        boolean collapsed = page.locator("input.room-firstname").isHidden();
+        Assert.assertTrue(collapsed, "Booking form should be hidden after Cancel");
     }
 
-    /**
-     * Attempts to book on unavailable (past) dates and expects a client-side exception banner.
-     */
+    /** Past‑date booking should raise a client‑side exception banner */
     @Test(description = "Booking flow on invalid (past) dates shows error banner")
     public void bookingFlowInvalidDates() {
-        LocalDate today = LocalDate.now();
-        String checkIn  = today.minusDays(10).format(FMT); // 10 days ago
-        String checkOut = today.minusDays(9).format(FMT);  // 9 days ago
+        LocalDate today   = LocalDate.now();
+        String checkIn    = today.minusDays(10).format(FMT);
+        String checkOut   = today.minusDays(9).format(FMT);
 
-        // Navigate to reservation page
         page.navigate("https://automationintesting.online/reservation/2"
                 + "?checkin=" + checkIn + "&checkout=" + checkOut);
 
-        // Attempt booking with past dates
         booking.completeBooking("Fail", "Case", "fail.case@example.com", "12345678901");
 
-        // Verify error banner is shown
         Locator errorBanner = page.locator(
                 "text=Application error: a client-side exception has occurred");
 
