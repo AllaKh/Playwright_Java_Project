@@ -5,11 +5,6 @@ import api.core.BaseApiTest;
 import org.testng.TestListenerAdapter;
 import org.testng.TestNG;
 import ui.tests.BookingFlowTest;
-import ui.tests.DeleteBookingTest;
-import ui.tests.UpdateBookingTest;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * TestRunner runs API tests by invoking their run() method,
