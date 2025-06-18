@@ -6,20 +6,27 @@ import org.testng.Assert;
 import org.testng.annotations.*;
 import pages.*;
 import ui.core.BasePlaywrightTest;
+import utils.TestDataLoader;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Verifies that fresh bookings for the Single, Double and Suite rooms appear (or not) on **Admin → Report**.
+ * Includes a dedicated test that just books the Suite (id = 3) without
+ * checking the report – this exposes the current code‑mismatch bug
+ * between the Suite’s room‑code in the booking flow (“104”) and the
+ * code shown in the report (“103” – see linked issue).
+ */
 public class AdminBookingReportTest extends BasePlaywrightTest {
 
     private HomePage home;
     private AdminLoginPage adminLogin;
     private BookingPage booking;
 
-    private static final String G_NAME = "Alice Test";
-    private static final String G_MAIL = "alice@example.com";
-    private static final String G_PHONE = "12345678901";
-//    private static final String G_SUBJ = "You have a new booking!";
+    private static final String G_NAME = TestDataLoader.get("name");
+    private static final String G_MAIL = TestDataLoader.get("email");
+    private static final String G_PHONE = TestDataLoader.get("phone");
 
     private static final DateTimeFormatter URL_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -121,6 +128,7 @@ public class AdminBookingReportTest extends BasePlaywrightTest {
         Assert.assertTrue(isModalGone, "Modal did not close within expected time");
     }
 
+    /* tests */
     @Test(description = "Verifies double room (id 2) is in report and message")
     public void doubleRoomBookingAppears() {
         createBooking("2");
@@ -136,11 +144,13 @@ public class AdminBookingReportTest extends BasePlaywrightTest {
     @Test(description = "Verifies suite room (id 3) appears despite room code mismatch")
     public void suiteRoomBookingAppears_Bug() {
         createBooking("3");
-        verifyReportRowAndMessage(G_NAME + " - Room: 103"); // Known mismatch: booked as 104
+        verifyReportRowAndMessage(G_NAME + " - Room: 103"); // Known mismatch: booked as 104, will fail due to bug
     }
 
     @Test(description = "Creates suite room booking without verifying admin")
     public void suiteRoomBookingOnlyCreate() {
         createBooking("3");
+        // No further assertions – the booking is created successfully,
+        // the mismatch is documented in the accompanying HTML issue.
     }
 }
